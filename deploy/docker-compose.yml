@@ -1,0 +1,42 @@
+services:
+  dialista:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "8787"
+      HOST: 0.0.0.0
+      SERVE_STATIC: "true"
+      COOKIE_SECURE: "true"
+      TRUST_PROXY: "true"
+      DATA_DIR: /app/data
+      SESSION_DAYS: "30"
+    volumes:
+      - dialista-data:/app/data
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      dialista:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN en deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?Define ACME_EMAIL en deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  dialista-data:
+  caddy-data:
+  caddy-config:

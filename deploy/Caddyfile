@@ -1,0 +1,30 @@
+{
+  email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+  encode zstd gzip
+
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    X-Frame-Options "DENY"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    -Server
+  }
+
+  # El service worker debe poder actualizarse sin quedar atrapado en la caché.
+  @serviceWorker path /sw.js
+  header @serviceWorker Cache-Control "no-cache, no-store, must-revalidate"
+
+  @manifest path /manifest.webmanifest
+  header @manifest Content-Type "application/manifest+json"
+
+  reverse_proxy dialista:8787
+
+  log {
+    output stdout
+    format console
+  }
+}
