@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 server-dist
-data
+/data
 *.local
 deploy/.env
 
