@@ -35,6 +35,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     reminderMinutes: null,
     reminderNotifiedAt: null,
     recurrenceGenerated: false,
+    fixedDaily: false,
     ...overrides,
   }
 }
@@ -64,6 +65,38 @@ describe('tareas', () => {
     expect(task.order).toBe(7)
     expect(task.createdAt).toBe(now.toISOString())
     expect(task.id).toBeTruthy()
+    expect(task.fixedDaily).toBe(false)
+  })
+
+  it('crea una tarea fija diaria y la sitúa como mínimo en hoy', () => {
+    const task = createTask(
+      {
+        title: 'Rutina diaria',
+        assignedDate: '2026-11-01',
+        recurrence: { frequency: 'weekly', interval: 2 },
+        fixedDaily: true,
+      },
+      now,
+    )
+
+    expect(task.fixedDaily).toBe(true)
+    expect(task.recurrence).toEqual({ frequency: 'daily', interval: 1 })
+    expect(task.assignedDate).toBe('2026-11-09')
+  })
+
+  it('permite quitar la condición de tarea fija al editar', () => {
+    const task = makeTask({
+      fixedDaily: true,
+      recurrence: { frequency: 'daily', interval: 1 },
+    })
+    const edited = updateTask(
+      task,
+      { title: task.title, fixedDaily: false, recurrence: null },
+      now,
+    )
+
+    expect(edited.fixedDaily).toBe(false)
+    expect(edited.recurrence).toBeNull()
   })
 
   it('respeta la ausencia de fecha y hora', () => {
@@ -298,6 +331,7 @@ describe('tareas', () => {
       completedAt: '2026-11-09T10:00:00.000Z',
       subtasks: [createSubtask('Paso hecho', true)],
       recurrence: { frequency: 'daily', interval: 1 },
+      fixedDaily: true,
       reminderMinutes: 30,
       time: '10:00',
       reminderNotifiedAt: '2026-11-09T09:30:00.000Z',
@@ -315,6 +349,7 @@ describe('tareas', () => {
     expect(next?.completedAt).toBeNull()
     expect(next?.assignedDate).toBe('2026-11-10')
     expect(next?.order).toBe(4)
+    expect(next?.fixedDaily).toBe(true)
     expect(next?.recurrenceGenerated).toBe(false)
     expect(next?.reminderNotifiedAt).toBeNull()
     expect(next?.reminderMinutes).toBe(30)

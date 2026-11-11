@@ -26,6 +26,7 @@ function payload(overrides: Record<string, unknown> = {}) {
     reminderMinutes: 30,
     reminderNotifiedAt: null,
     recurrenceGenerated: false,
+    fixedDaily: false,
     ...overrides,
   }
 }
@@ -69,6 +70,18 @@ describe('normalizeTaskPayload', () => {
       }),
     )
     expect(task.recurrence).toEqual({ frequency: 'weekdays', interval: 1 })
+  })
+
+  it('convierte una tarea fija en una repetición diaria', () => {
+    const task = normalizeTaskPayload(
+      payload({
+        fixedDaily: true,
+        recurrence: { frequency: 'monthly', interval: 3 },
+      }),
+    )
+
+    expect(task.fixedDaily).toBe(true)
+    expect(task.recurrence).toEqual({ frequency: 'daily', interval: 1 })
   })
 
   it('marca completedAt al completar una tarea sin fecha explícita', () => {

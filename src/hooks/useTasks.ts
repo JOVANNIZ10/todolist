@@ -12,6 +12,7 @@ import { loadTasks, saveTasks } from '../data/taskRepository'
 import { readCachedTasks, saveCachedTasks } from '../data/remoteCache'
 import { diffTasks, mergeTaskChanges } from '../data/taskSync'
 import { todayKey } from '../domain/dates'
+import { rollFixedDailyTasks } from '../domain/fixedDaily'
 import {
   changeTaskStatus,
   createNextRecurringTask,
@@ -44,6 +45,8 @@ function isOfflineFailure(error: unknown): boolean {
 export interface UseTasksOptions {
   mode: 'local' | 'remote'
   listId: string | null
+  /** Día local actual, para mantener al día las tareas fijas. */
+  today: string
   enabled?: boolean
   onAuthExpired?: () => void
 }
@@ -155,7 +158,7 @@ function applyStatusChange(
  * datos de varias cuentas en el mismo navegador.
  */
 export function useTasks(options: UseTasksOptions): UseTasksResult {
-  const { mode, listId, enabled = true, onAuthExpired } = options
+  const { mode, listId, today, enabled = true, onAuthExpired } = options
 
   const [initialLoad] = useState(loadTasks)
   const [tasks, setTasks] = useState<Task[]>(initialLoad.tasks)
@@ -171,6 +174,8 @@ export function useTasks(options: UseTasksOptions): UseTasksResult {
   )
   const [syncError, setSyncError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  /** Lista cuya instantánea ya se ha cargado (o intentado) en modo remoto. */
+  const [readyListId, setReadyListId] = useState<string | null>(null)
 
   const tasksRef = useRef(tasks)
   const modeRef = useRef(mode)
@@ -633,6 +638,7 @@ export function useTasks(options: UseTasksOptions): UseTasksResult {
     setLoadWarning(null)
     setStorageError(null)
     setSyncError(null)
+    setReadyListId(null)
 
     if (!listId) {
       originRef.current = 'remote'
@@ -679,6 +685,7 @@ export function useTasks(options: UseTasksOptions): UseTasksResult {
         setTasks(result.tasks)
         saveCachedTasks(listId, result.tasks)
         setSyncStatus('synced')
+        setReadyListId(listId)
         connectStream(listId)
       } catch (error) {
         if (cancelled || controller.signal.aborted) return
@@ -694,6 +701,7 @@ export function useTasks(options: UseTasksOptions): UseTasksResult {
             ? 'No se ha podido contactar con el servidor. Se muestra la última copia guardada en este dispositivo.'
             : `No se han podido cargar las tareas: ${messageFrom(error)}`,
         )
+        setReadyListId(listId)
       }
     }
 
@@ -714,6 +722,21 @@ export function useTasks(options: UseTasksOptions): UseTasksResult {
     connectStream,
     notifyAuthExpired,
   ])
+
+  /**
+   * Las tareas fijas se trasladan a hoy cuando cambia el día. En remoto se
+   * espera a tener la instantánea de la lista para no enviar cambios basados en
+   * datos de otra lista o en la caché todavía sin confirmar.
+   */
+  useEffect(() => {
+    if (!enabled) return
+    if (mode === 'remote' && readyListId !== listId) return
+
+    mutate((currentTasks) => {
+      const rolled = rollFixedDailyTasks(currentTasks, today)
+      return rolled === currentTasks ? currentTasks : [...rolled]
+    })
+  }, [enabled, mode, listId, readyListId, today, mutate])
 
   useEffect(() => {
     if (mode !== 'remote' || !enabled || !listId) return

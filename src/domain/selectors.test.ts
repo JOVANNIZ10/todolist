@@ -28,6 +28,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     reminderMinutes: null,
     reminderNotifiedAt: null,
     recurrenceGenerated: false,
+    fixedDaily: false,
     ...overrides,
   }
 }

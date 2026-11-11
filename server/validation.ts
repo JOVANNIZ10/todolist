@@ -234,6 +234,11 @@ export function normalizeTaskPayload(
       ? value.order
       : 0
 
+  const fixedDaily = value.fixedDaily === true
+  const recurrence: RecurrenceRule | null = fixedDaily
+    ? { frequency: 'daily', interval: 1 }
+    : normalizeRecurrence(value.recurrence)
+
   return {
     id: rawId,
     title: requiredString(value.title, 'título', MAX_TASK_TITLE),
@@ -254,7 +259,8 @@ export function normalizeTaskPayload(
         : null,
     order,
     subtasks: normalizeSubtasks(value.subtasks),
-    recurrence: normalizeRecurrence(value.recurrence),
+    recurrence,
+    fixedDaily,
     reminderMinutes,
     reminderNotifiedAt:
       status === 'done'

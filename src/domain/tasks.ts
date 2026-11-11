@@ -150,6 +150,18 @@ function sameRecurrence(
   )
 }
 
+const DAILY_RECURRENCE: RecurrenceRule = {
+  frequency: 'daily',
+  interval: 1,
+}
+
+function normalizeDailyRule(
+  fixedDaily: boolean,
+  recurrence: RecurrenceRule | null,
+): RecurrenceRule | null {
+  return fixedDaily ? DAILY_RECURRENCE : recurrence
+}
+
 export function validateTaskDraft(draft: TaskDraft): TaskValidationErrors {
   const errors: TaskValidationErrors = {}
   const title = normalizeRequiredText(draft.title)
@@ -219,10 +231,15 @@ export function createTask(
   }
 
   const status = draft.status ?? 'pending'
-  const assignedDate =
+  const today = todayKey(now)
+  const fixedDaily = draft.fixedDaily === true
+  let assignedDate =
     draft.assignedDate === undefined
-      ? todayKey(now)
+      ? today
       : normalizeOptionalText(draft.assignedDate)
+  if (fixedDaily && (assignedDate === null || assignedDate < today)) {
+    assignedDate = today
+  }
   const time = normalizeOptionalText(draft.time)
   const subtasks = normalizeSubtasks(draft.subtasks)
 
@@ -240,7 +257,11 @@ export function createTask(
     order,
     subtasks:
       status === 'done' ? markAllSubtasksDone(subtasks) : subtasks,
-    recurrence: normalizeRecurrenceRule(draft.recurrence),
+    recurrence: normalizeDailyRule(
+      fixedDaily,
+      normalizeRecurrenceRule(draft.recurrence),
+    ),
+    fixedDaily,
     reminderMinutes: time
       ? normalizeReminderMinutes(draft.reminderMinutes)
       : null,
@@ -265,16 +286,31 @@ export function updateTask(
   }
 
   const status = draft.status ?? task.status
-  const assignedDate =
+  const fixedDaily =
+    draft.fixedDaily === undefined
+      ? task.fixedDaily
+      : draft.fixedDaily === true
+  let assignedDate =
     draft.assignedDate === undefined
       ? task.assignedDate
       : normalizeOptionalText(draft.assignedDate)
+  const today = todayKey(now)
+  if (
+    fixedDaily &&
+    status !== 'done' &&
+    !task.recurrenceGenerated &&
+    (assignedDate === null || assignedDate < today)
+  ) {
+    assignedDate = today
+  }
   const time =
     draft.time === undefined ? task.time : normalizeOptionalText(draft.time)
-  const recurrence =
+  const recurrence = normalizeDailyRule(
+    fixedDaily,
     draft.recurrence === undefined
       ? task.recurrence
-      : normalizeRecurrenceRule(draft.recurrence)
+      : normalizeRecurrenceRule(draft.recurrence),
+  )
   const reminderMinutes =
     draft.reminderMinutes === undefined
       ? task.reminderMinutes
@@ -311,10 +347,13 @@ export function updateTask(
     completedAt: completionTimestampForStatus(status, task, now),
     subtasks,
     recurrence,
+    fixedDaily,
     reminderMinutes: nextReminderMinutes,
     reminderNotifiedAt: scheduleChanged ? null : task.reminderNotifiedAt,
     recurrenceGenerated:
-      recurrence !== null && sameRecurrence(recurrence, task.recurrence)
+      fixedDaily === task.fixedDaily &&
+      recurrence !== null &&
+      sameRecurrence(recurrence, task.recurrence)
         ? task.recurrenceGenerated
         : false,
   }

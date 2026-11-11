@@ -104,8 +104,12 @@ export function TaskFormDialog({
   )
   const [newSubtask, setNewSubtask] = useState('')
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<
-    RecurrenceFrequency | 'none'
-  >(initialTask?.recurrence?.frequency ?? 'none')
+    RecurrenceFrequency | 'none' | 'fixed-daily'
+  >(
+    initialTask?.fixedDaily
+      ? 'fixed-daily'
+      : (initialTask?.recurrence?.frequency ?? 'none'),
+  )
   const [recurrenceInterval, setRecurrenceInterval] = useState(
     initialTask?.recurrence?.interval ?? 1,
   )
@@ -135,17 +139,20 @@ export function TaskFormDialog({
   }, [])
 
   const tomorrow = addDays(today, 1)
+  const fixedDaily = recurrenceFrequency === 'fixed-daily'
 
   const recurrence: RecurrenceRule | null =
     recurrenceFrequency === 'none'
       ? null
-      : {
-          frequency: recurrenceFrequency,
-          interval:
-            recurrenceFrequency === 'weekdays'
-              ? 1
-              : Math.min(99, Math.max(1, recurrenceInterval || 1)),
-        }
+      : fixedDaily
+        ? { frequency: 'daily', interval: 1 }
+        : {
+            frequency: recurrenceFrequency,
+            interval:
+              recurrenceFrequency === 'weekdays'
+                ? 1
+                : Math.min(99, Math.max(1, recurrenceInterval || 1)),
+          }
 
   let nextDate: string | null = null
   if (recurrence) {
@@ -180,11 +187,12 @@ export function TaskFormDialog({
       description,
       status,
       priority,
-      assignedDate: assignedDate || null,
+      assignedDate: assignedDate || (fixedDaily ? today : null),
       time: time || null,
       project: project || null,
       subtasks,
       recurrence,
+      fixedDaily,
       reminderMinutes:
         reminderMinutes === '' ? null : Number(reminderMinutes),
     }
@@ -432,6 +440,12 @@ export function TaskFormDialog({
                 <button
                   type="button"
                   className={assignedDate === '' ? 'is-active' : ''}
+                  disabled={fixedDaily}
+                  title={
+                    fixedDaily
+                      ? 'Una tarea fija necesita una fecha para empezar'
+                      : undefined
+                  }
                   onClick={() => setAssignedDate('')}
                 >
                   Sin fecha
@@ -478,11 +492,18 @@ export function TaskFormDialog({
                   const value = event.target.value as
                     | RecurrenceFrequency
                     | 'none'
+                    | 'fixed-daily'
                   setRecurrenceFrequency(value)
-                  if (value === 'weekdays') setRecurrenceInterval(1)
+                  if (value === 'weekdays' || value === 'fixed-daily') {
+                    setRecurrenceInterval(1)
+                  }
+                  if (value === 'fixed-daily' && assignedDate === '') {
+                    setAssignedDate(today)
+                  }
                 }}
               >
                 <option value="none">No se repite</option>
+                <option value="fixed-daily">Fijar todos los días</option>
                 {RECURRENCE_FREQUENCY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -491,7 +512,8 @@ export function TaskFormDialog({
               </select>
 
               {recurrenceFrequency !== 'none' &&
-                recurrenceFrequency !== 'weekdays' && (
+                recurrenceFrequency !== 'weekdays' &&
+                recurrenceFrequency !== 'fixed-daily' && (
                   <div className="interval-field">
                     <span>Repetir cada</span>
                     <input
@@ -517,7 +539,12 @@ export function TaskFormDialog({
                   </div>
                 )}
 
-              {nextDate ? (
+              {fixedDaily ? (
+                <div className="recurrence-next">
+                  Aparecerá cada día hasta que la completes. Al completarla,
+                  volverá al día siguiente.
+                </div>
+              ) : nextDate ? (
                 <div className="recurrence-next">
                   Próxima aparición: <strong>{formatCompactDate(nextDate)}</strong>
                 </div>

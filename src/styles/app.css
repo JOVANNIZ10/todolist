@@ -929,7 +929,8 @@
 }
 
 .overdue-badge,
-.priority-badge {
+.priority-badge,
+.fixed-badge {
   display: inline-flex;
   gap: 4px;
   align-items: center;
@@ -940,6 +941,17 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
   border-radius: 999px;
+}
+
+.fixed-badge {
+  color: var(--accent-strong);
+  background: var(--accent-pale);
+}
+
+.fixed-badge svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2;
 }
 
 .overdue-badge {
@@ -981,7 +993,8 @@
 }
 
 .task-card--done .priority-badge,
-.task-card--done .overdue-badge {
+.task-card--done .overdue-badge,
+.task-card--done .fixed-badge {
   opacity: 0.65;
 }
 
@@ -1450,6 +1463,11 @@
   color: var(--accent-strong);
   background: var(--accent-pale);
   border-color: #c6dccd;
+}
+
+.quick-dates button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .field-hint {

@@ -37,6 +37,7 @@ export interface Task {
   order: number
   subtasks: Subtask[]
   recurrence: RecurrenceRule | null
+  fixedDaily: boolean
   reminderMinutes: number | null
   reminderNotifiedAt: string | null
   recurrenceGenerated: boolean

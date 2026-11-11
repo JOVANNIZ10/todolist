@@ -37,6 +37,7 @@ function makeTask(id: string, overrides: Partial<Task> = {}): Task {
     reminderMinutes: null,
     reminderNotifiedAt: null,
     recurrenceGenerated: false,
+    fixedDaily: false,
     ...overrides,
   }
 }

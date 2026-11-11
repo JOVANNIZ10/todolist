@@ -50,6 +50,11 @@ export interface Task {
   order: number
   subtasks: Subtask[]
   recurrence: RecurrenceRule | null
+  /**
+   * Tarea fija: si no se completa, pasa al día actual en lugar de quedarse
+   * atrasada. Al completarla se genera la aparición del día siguiente.
+   */
+  fixedDaily: boolean
   reminderMinutes: number | null
   /** Evita repetir el aviso de una misma tarea durante la sesión. */
   reminderNotifiedAt: string | null
@@ -68,6 +73,7 @@ export interface TaskDraft {
   project?: string | null
   subtasks?: readonly Subtask[]
   recurrence?: RecurrenceRule | null
+  fixedDaily?: boolean
   reminderMinutes?: number | null
 }
 

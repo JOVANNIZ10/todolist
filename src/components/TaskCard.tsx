@@ -159,6 +159,15 @@ export function TaskCard({
                   Atrasada
                 </span>
               )}
+              {task.fixedDaily && (
+                <span
+                  className="fixed-badge"
+                  title="Tarea fija: aparece cada día hasta que la completes"
+                >
+                  <IconRepeat />
+                  Fija
+                </span>
+              )}
               <span
                 className={`priority-badge priority-badge--${task.priority}`}
                 aria-label={`Prioridad ${PRIORITY_LABELS[task.priority]}`}

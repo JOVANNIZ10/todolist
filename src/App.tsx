@@ -189,6 +189,7 @@ function App() {
   } = useTasks({
     mode: isAuthenticated ? 'remote' : 'local',
     listId: auth.activeListId,
+    today,
     enabled: auth.status !== 'loading',
     onAuthExpired: handleSessionExpired,
   })

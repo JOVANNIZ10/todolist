@@ -76,7 +76,7 @@ npm run build        # cliente + servidor + dist/
 npm run build:server # solo el servidor TypeScript
 npm start            # API + interfaz compilada
 npm run start:api    # solo la API
-npm test             # 114 pruebas de lógica, API y copias offline
+npm test             # 122 pruebas de lógica, API y copias offline
 npm run test:watch   # pruebas en modo vigilancia
 npm run lint         # Oxlint
 ```
@@ -131,6 +131,8 @@ También existen `--host=`, `--data-dir=` y `--static-dir=`.
       Al completar la tarea se marcan todas; al reabrirla se conservan.
 - [x] **Recurrencia** diaria, en días laborables, semanal y mensual, con intervalo
       configurable.
+- [x] **Tareas fijas diarias**: se quedan en el día actual hasta que las completes y,
+      al hacerlo, aparece la del día siguiente. No se acumulan copias atrasadas.
 - [x] Al completar una tarea recurrente se crea la siguiente aparición, pendiente y
       con las subtareas reiniciadas. `recurrenceGenerated` evita duplicados si se
       reabre y se vuelve a completar.
@@ -225,6 +227,18 @@ También existen `--host=`, `--data-dir=` y `--static-dir=`.
 - La tarea original queda completada; la nueva nace pendiente, sin recordatorio
   enviado y con subtareas nuevas sin marcar.
 - Solo se genera una aparición por finalización; no se crean series futuras.
+
+### Cómo funcionan las tareas fijas
+
+- Se activan en el formulario con **Repetición → Fijar todos los días**.
+- Si la tarea no se completa, al cambiar el día pasa a la fecha actual en lugar de
+  quedarse en **Atrasadas**. La rutina aparece siempre en **Hoy**.
+- Al completarla se crea la aparición del día siguiente, que conserva el título,
+  la descripción, la prioridad, la hora, el proyecto y las subtareas reiniciadas.
+- Las apariciones completadas se conservan como historial. Las tareas completadas y
+  reabiertas no se mueven, para no duplicar la serie.
+- Una tarea fija siempre usa repetición diaria con intervalo 1. Si se cambia a otra
+  frecuencia, deja de ser fija.
 
 ### Cómo funcionan los recordatorios
 
@@ -343,6 +357,7 @@ opción **Copiar a esta lista**. La copia:
     frequency: 'daily' | 'weekdays' | 'weekly' | 'monthly'
     interval: number
   } | null
+  fixedDaily: boolean
   reminderMinutes: number | null
   reminderNotifiedAt: string | null
   recurrenceGenerated: boolean
@@ -481,6 +496,7 @@ src/
 │   ├── dates.ts               # días locales, semanas, DST, medianoche
 │   ├── tasks.ts               # validación, subtareas, recordatorios, orden
 │   ├── recurrence.ts          # siguientes apariciones
+│   ├── fixedDaily.ts          # traslado diario de las tareas fijas
 │   ├── selectors.ts           # vistas, búsqueda, filtros y contadores
 │   ├── statistics.ts          # métricas y agregados
 │   └── *.test.ts
@@ -530,12 +546,14 @@ deploy/
 
 ## Pruebas incluidas
 
-`npm test` ejecuta **114 pruebas** en **15 archivos**:
+`npm test` ejecuta **122 pruebas** en **16 archivos**:
 
 - `src/domain/dates.test.ts`: fechas locales, semanas, DST y medianoche.
 - `src/domain/tasks.test.ts`: validación, estados, subtareas, recurrencia y
   recordatorios.
 - `src/domain/recurrence.test.ts`: reglas diarias, laborables, semanales y mensuales.
+- `src/domain/fixedDaily.test.ts`: traslado diario de tareas fijas y protección contra
+  duplicados.
 - `src/domain/selectors.test.ts`: vistas, filtros, búsqueda y contadores.
 - `src/domain/statistics.test.ts`: totales y agregados.
 - `src/data/taskRepository.test.ts`: migraciones, datos dañados y errores de
